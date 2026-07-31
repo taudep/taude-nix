@@ -1,5 +1,42 @@
 {
   "nodes": {
+    "dot-local": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1785469237,
+        "narHash": "sha256-oFJPRzOlFWrPjcFiJW7Jr/z/QmyTuy94vJRSQh6e8Wc=",
+        "owner": "taudep",
+        "repo": "dot-local",
+        "rev": "4bf0a07ae58b26ad98626e805d7805fb4c1eb455",
+        "type": "github"
+      },
+      "original": {
+        "owner": "taudep",
+        "repo": "dot-local",
+        "type": "github"
+      }
+    },
+    "home-manager": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1785469032,
+        "narHash": "sha256-aB6tgXxSFT48X0Jc/v5opHUVo/B9sOoojUE6uZ7ymsc=",
+        "owner": "nix-community",
+        "repo": "home-manager",
+        "rev": "6d25edfbd109bd6c0bb950a2fb6c37141795e3f1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "ref": "master",
+        "repo": "home-manager",
+        "type": "github"
+      }
+    },
     "nix-darwin": {
       "inputs": {
         "nixpkgs": [
@@ -39,6 +76,8 @@
     },
     "root": {
       "inputs": {
+        "dot-local": "dot-local",
+        "home-manager": "home-manager",
         "nix-darwin": "nix-darwin",
         "nixpkgs": "nixpkgs"
       }

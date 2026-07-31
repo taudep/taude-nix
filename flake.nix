@@ -5,9 +5,18 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nix-darwin.url = "github:nix-darwin/nix-darwin/master";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
+    home-manager.url = "github:nix-community/home-manager/master";
+    home-manager.inputs.nixpkgs.follows = "nixpkgs";
+
+    # Plain dotfiles repo, not a flake — just used as a source of files for
+    # home-manager to symlink into place.
+    dot-local = {
+      url = "github:taudep/dot-local";
+      flake = false;
+    };
   };
 
-  outputs = inputs@{ self, nix-darwin, nixpkgs }:
+  outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, dot-local }:
   let
     configuration = { pkgs, ... }: {
       # List packages installed in system profile. To search by name, run:
@@ -122,13 +131,44 @@
       # Required for user-scoped options (e.g. homebrew) since nix-darwin
       # activation runs as root.
       system.primaryUser = "taude";
+
+      # Declares the existing macOS account (nix-darwin doesn't create it) so
+      # home-manager can derive home.homeDirectory from it.
+      users.users.taude.home = "/Users/taude";
+    };
+
+    # Dotfiles hydrated from https://github.com/taudep/dot-local, symlinked
+    # into place by home-manager. Existing real files at these paths get
+    # backed up with a ".backup" suffix the first time this switches.
+    homeManagerConfiguration = { pkgs, ... }: {
+      home.stateVersion = "24.05";
+      home.username = "taude";
+
+      home.file = {
+        ".zshrc".source = "${dot-local}/zsh/zshrc";
+        ".zprofile".source = "${dot-local}/zsh/zprofile";
+        ".gitconfig".source = "${dot-local}/git/gitconfig";
+        ".config/starship.toml".source = "${dot-local}/starship/starship.toml";
+        ".config/doom/config.el".source = "${dot-local}/doom/config.el";
+        ".config/doom/init.el".source = "${dot-local}/doom/init.el";
+        ".config/doom/packages.el".source = "${dot-local}/doom/packages.el";
+      };
     };
   in
   {
     # Build darwin flake using:
     # $ darwin-rebuild build --flake .#simple
     darwinConfigurations."Todds-MacBook-Neo" = nix-darwin.lib.darwinSystem {
-      modules = [ configuration ];
+      modules = [
+        configuration
+        home-manager.darwinModules.home-manager
+        {
+          home-manager.useGlobalPkgs = true;
+          home-manager.useUserPackages = true;
+          home-manager.backupFileExtension = "backup";
+          home-manager.users.taude = homeManagerConfiguration;
+        }
+      ];
     };
   };
 }
