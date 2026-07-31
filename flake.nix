@@ -80,15 +80,16 @@
           "manaflow-ai/cmux"
         ];
         brews = [
-          "uv"
-          "tmux"
+          "bat"
           "fd"
           "fmt"
-          "bat"
           "gh"
+          "git"
           "glow"
-          "ripgrep"
           "jq"
+          "ripgrep"
+          "tmux"
+          "uv"
         ];
         casks = [
           "ghostty"
