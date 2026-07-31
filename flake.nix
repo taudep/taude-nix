@@ -18,7 +18,10 @@
 
   outputs = inputs@{ self, nix-darwin, nixpkgs, home-manager, dot-local }:
   let
-    configuration = { pkgs, ... }: {
+    # Shared system config, parameterized per machine. `username` is the
+    # macOS account nix-darwin/home-manager operate as; `hostPlatform` is
+    # "aarch64-darwin" for Apple Silicon or "x86_64-darwin" for Intel.
+    mkConfiguration = { username, hostPlatform }: { pkgs, ... }: {
       # List packages installed in system profile. To search by name, run:
       # $ nix-env -qaP | grep wget
       environment.systemPackages =
@@ -125,24 +128,23 @@
       # $ darwin-rebuild changelog
       system.stateVersion = 6;
 
-      # The platform the configuration will be used on.
-      nixpkgs.hostPlatform = "aarch64-darwin";
+      nixpkgs.hostPlatform = hostPlatform;
 
       # Required for user-scoped options (e.g. homebrew) since nix-darwin
       # activation runs as root.
-      system.primaryUser = "taude";
+      system.primaryUser = username;
 
       # Declares the existing macOS account (nix-darwin doesn't create it) so
       # home-manager can derive home.homeDirectory from it.
-      users.users.taude.home = "/Users/taude";
+      users.users.${username}.home = "/Users/${username}";
     };
 
     # Dotfiles hydrated from https://github.com/taudep/dot-local, symlinked
     # into place by home-manager. Existing real files at these paths get
     # backed up with a ".backup" suffix the first time this switches.
-    homeManagerConfiguration = { pkgs, ... }: {
+    mkHomeManagerConfiguration = { username }: { pkgs, ... }: {
       home.stateVersion = "24.05";
-      home.username = "taude";
+      home.username = username;
 
       home.file = {
         ".zshrc".source = "${dot-local}/zsh/zshrc";
@@ -154,21 +156,35 @@
         ".config/doom/packages.el".source = "${dot-local}/doom/packages.el";
       };
     };
+
+    mkDarwinConfig = { username ? "taude", hostPlatform ? "aarch64-darwin" }:
+      nix-darwin.lib.darwinSystem {
+        modules = [
+          (mkConfiguration { inherit username hostPlatform; })
+          home-manager.darwinModules.home-manager
+          {
+            home-manager.useGlobalPkgs = true;
+            home-manager.useUserPackages = true;
+            home-manager.backupFileExtension = "backup";
+            home-manager.users.${username} = mkHomeManagerConfiguration { inherit username; };
+          }
+        ];
+      };
   in
   {
     # Build darwin flake using:
     # $ darwin-rebuild build --flake .#simple
-    darwinConfigurations."Todds-MacBook-Neo" = nix-darwin.lib.darwinSystem {
-      modules = [
-        configuration
-        home-manager.darwinModules.home-manager
-        {
-          home-manager.useGlobalPkgs = true;
-          home-manager.useUserPackages = true;
-          home-manager.backupFileExtension = "backup";
-          home-manager.users.taude = homeManagerConfiguration;
-        }
-      ];
-    };
+    darwinConfigurations."Todds-MacBook-Neo" = mkDarwinConfig { };
+
+    # Placeholder configs for two more machines. Before using either one:
+    #   1. Rename the attribute below (e.g. "CHANGEME-mac-mini") to the
+    #      machine's real hostname — run `scutil --get LocalHostName` on
+    #      that Mac to find it.
+    #   2. If the macOS account name on that machine isn't "taude", pass
+    #      `username = "whatever";` below.
+    #   3. If it's an Intel Mac, pass `hostPlatform = "x86_64-darwin";`.
+    # See README.md for the full walkthrough.
+    darwinConfigurations."CHANGEME-mac-mini" = mkDarwinConfig { };
+    darwinConfigurations."CHANGEME-work-computer" = mkDarwinConfig { };
   };
 }
