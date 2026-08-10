@@ -65,6 +65,20 @@
             fi
           done
         done
+
+        echo "Installing global npm packages..." >&2
+        npm_bin=""
+        for candidate in /opt/homebrew/bin/npm /usr/local/bin/npm; do
+          if [ -x "$candidate" ]; then
+            npm_bin="$candidate"
+            break
+          fi
+        done
+        if [ -n "$npm_bin" ]; then
+          "$npm_bin" install -g @bitwarden/cli
+        else
+          echo "  skipped: npm not found (is the homebrew 'node' formula installed?)" >&2
+        fi
       '';
 
       # Caps Lock acts as an extra Control key.
@@ -99,6 +113,7 @@
           "git"
           "glow"
           "jq"
+          "node"
           "ripgrep"
           "tmux"
           "uv"
